@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настольный теннис счет</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+        }
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .scoreboard div {
+            margin: 0 20px;
+            text-align: center;
+        }
+        .player-name {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .player-score {
+            font-size: 100px;
+            font-weight: bold;
+        }
+        .tournament-score {
+            font-size: 24px;
+            margin-top: 40px;
+        }
+        .status {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .start-button {
+            padding: 10px 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="scoreboard">
+        <div>
+            <div class="player-name">Мирон</div>
+            <div class="player-score" id="miron-score" style="color: green;">0</div>
+        </div>
+        <div>
+            <div class="player-name">Соня</div>
+            <div class="player-score" id="sonya-score" style="color: green;">0</div>
+        </div>
+    </div>
+    <div class="tournament-score" id="tournament-score">
+        Счет турниров: Мирон 0 - Соня 0
+    </div>
+    <div class="status" id="status">Статус: Ждем команды...</div>
+    <button class="start-button" onclick="startRecognition()">Начать</button>
+
+    <script>
+        let score = { 'Мирон': 0, 'Соня': 0 };
+        let games = { 'Мирон': 0, 'Соня': 0 };
+        let current_game = 1;
+        let recognition; // Объявление переменной на уровне скрипта
+
+        function updateScore(player) {
+            score[player]++;
+            document.getElementById('miron-score').innerText = score['Мирон'];
+            document.getElementById('sonya-score').innerText = score['Соня'];
+            
+            if (score['Мирон'] > score['Соня']) {
+                document.getElementById('miron-score').style.color = 'green';
+                document.getElementById('sonya-score').style.color = 'red';
+            } else if (score['Мирон'] < score['Соня']) {
+                document.getElementById('miron-score').style.color = 'red';
+                document.getElementById('sonya-score').style.color = 'green';
+            } else {
+                document.getElementById('miron-score').style.color = 'green';
+                document.getElementById('sonya-score').style.color = 'green';
+            }
+
+            if (checkWinner()) {
+                games[player]++;
+                document.getElementById('status').innerText = `${player} выигрывает игру ${current_game}!`;
+                if (games[player] === 2) {
+                    document.getElementById('status').innerText = `${player} выигрывает турнир!`;
+                    document.getElementById('tournament-score').innerText = `Счет турниров: Мирон ${games['Мирон']} - Соня ${games['Соня']}`;
+                    resetGame();
+                } else {
+                    current_game++;
+                    resetScore();
+                    document.getElementById('status').innerText += ` Начинаем игру ${current_game}.`;
+                }
+            }
+        }
+
+        function checkWinner() {
+            return (score['Мирон'] >= 11 || score['Соня'] >= 11) && Math.abs(score['Мирон'] - score['Соня']) >= 2;
+        }
+
+        function resetScore() {
+            score = { 'Мирон': 0, 'Соня': 0 };
+            document.getElementById('miron-score').innerText = score['Мирон'];
+            document.getElementById('sonya-score').innerText = score['Соня'];
+            document.getElementById('miron-score').style.color = 'green';
+            document.getElementById('sonya-score').style.color = 'green';
+        }
+
+        function resetGame() {
+            score = { 'Мирон': 0, 'Соня': 0 };
+            games = { 'Мирон': 0, 'Соня': 0 };
+            current_game = 1;
+            document.getElementById('miron-score').innerText = score['Мирон'];
+            document.getElementById('sonya-score').innerText = score['Соня'];
+            document.getElementById('miron-score').style.color = 'green';
+            document.getElementById('sonya-score').style.color = 'green';
+            document.getElementById('tournament-score').innerText = `Счет турниров: Мирон 0 - Соня 0`;
+        }
+
+        function startRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ru-RU';
+            recognition.continuous = true;
+
+            recognition.onstart = function() {
+                console.log('Распознавание начато'); // Сообщение для отладки
+                document.getElementById('status').innerText = 'Статус: Слушаем...';
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+                console.log('Распознано:', transcript); // Для отладки
+                if (transcript.includes('мирон плюс один')) {
+                    console.log('Команда распознана: Мирон плюс один'); // Для отладки
+                    updateScore('Мирон');
+                } else if (transcript.includes('соня плюс один')) {
+                    console.log('Команда распознана: Соня плюс один'); // Для отладки
+                    updateScore('Соня');
+                } else {
+                    console.log('Команда не распознана:', transcript); // Для отладки
+                    document.getElementById('status').innerText = 'Команда не распознана. Попробуйте снова.';
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Ошибка распознавания:', event.error); // Для отладки
+                document.getElementById('status').innerText = `Ошибка: ${event.error}`;
+            };
+
+            recognition.onend = function() {
+                console.log('Распознавание завершено, перезапуск...'); // Для отладки
+                setTimeout(() => {
+                    recognition.start();
+                }, 2000); // Задержка 2 секунды перед перезапуском
+            };
+
+            recognition.start();
+        }
+    </script>
+</body>
+</html>
